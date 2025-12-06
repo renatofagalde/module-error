@@ -1,4 +1,4 @@
-package domain_error
+package domainerror
 
 import (
 	"net/http"
@@ -40,13 +40,13 @@ func TestDomainError_Error(t *testing.T) {
 func TestNew(t *testing.T) {
 	code := "TEST_ERROR"
 	message := "Mensagem de teste"
-	
+
 	err := New(code, message)
-	
+
 	if err.Code != code {
 		t.Errorf("Code = %v, want %v", err.Code, code)
 	}
-	
+
 	if err.Message != message {
 		t.Errorf("Message = %v, want %v", err.Message, message)
 	}
@@ -54,7 +54,7 @@ func TestNew(t *testing.T) {
 
 func TestHTTPStatusMapper_GetHTTPStatus(t *testing.T) {
 	mapper := NewHTTPStatusMapper()
-	
+
 	tests := []struct {
 		name           string
 		err            error
@@ -109,7 +109,7 @@ func TestHTTPStatusMapper_GetHTTPStatus(t *testing.T) {
 
 func TestHTTPStatusMapper_GetHTTPStatusByCode(t *testing.T) {
 	mapper := NewHTTPStatusMapper()
-	
+
 	tests := []struct {
 		name           string
 		code           string

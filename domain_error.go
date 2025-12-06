@@ -1,19 +1,16 @@
-package domain_error
+package domainerror
 
 import "fmt"
 
-// DomainError representa um erro de domínio da aplicação
 type DomainError struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
 }
 
-// Error implementa a interface error
 func (e *DomainError) Error() string {
 	return fmt.Sprintf("%s: %s", e.Code, e.Message)
 }
 
-// New cria uma nova instância de DomainError
 func New(code, message string) *DomainError {
 	return &DomainError{
 		Code:    code,
