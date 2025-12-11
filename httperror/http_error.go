@@ -167,7 +167,5 @@ func (m *DefaultHTTPStatusMapper) Status(err error) int {
 	if status, ok := m.statusByCode[derr.Code]; ok {
 		return status
 	}
-
 	return http.StatusInternalServerError
-
 }
