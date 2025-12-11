@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/jackc/pgconn"
+	"github.com/jackc/pgx/v5/pgconn"
 	domainerror "github.com/renatofagalde/module-error"
 	"gorm.io/gorm"
 )
@@ -31,14 +31,12 @@ func (m *PostgresErrorMapper) Map(err error) error {
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) {
 		switch pgErr.Code {
-
 		case "23505":
 			if m.constraintErrors != nil {
 				if derr, ok := m.constraintErrors[pgErr.ConstraintName]; ok && derr != nil {
 					return derr
 				}
 			}
-			// Fallback genérico
 			return domainerror.ErrConflict
 
 		case "23503":
