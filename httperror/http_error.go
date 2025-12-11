@@ -156,8 +156,6 @@ func NewDefaultHTTPStatusMapper() *DefaultHTTPStatusMapper {
 
 func (m *DefaultHTTPStatusMapper) Status(err error) int {
 	if err == nil {
-		// Em regra esse mapper é usado só no fluxo de erro;
-		// se alguém chamar com nil, devolvemos 200.
 		return http.StatusOK
 	}
 
