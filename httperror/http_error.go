@@ -15,7 +15,7 @@ type DefaultHTTPStatusMapper struct {
 	statusByCode map[string]int
 }
 
-var httpErrorMapper = httperror.NewDefaultHTTPStatusMapper()
+var httpErrorMapper = NewDefaultHTTPStatusMapper()
 
 func WriteError(c *gin.Context, err error) {
 	status := httpErrorMapper.Status(err)
