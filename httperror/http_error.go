@@ -15,6 +15,25 @@ type DefaultHTTPStatusMapper struct {
 	statusByCode map[string]int
 }
 
+var httpErrorMapper = httperror.NewDefaultHTTPStatusMapper()
+
+func WriteError(c *gin.Context, err error) {
+	status := httpErrorMapper.Status(err)
+
+	if derr, ok := err.(*domainerror.DomainError); ok {
+		c.JSON(status, gin.H{
+			"code":    derr.Code,
+			"message": derr.Message,
+		})
+		return
+	}
+
+	c.JSON(status, gin.H{
+		"code":    domainerror.ErrInternalServer.Code,
+		"message": "Erro interno do servidor",
+	})
+}
+
 func NewDefaultHTTPStatusMapper() *DefaultHTTPStatusMapper {
 	m := &DefaultHTTPStatusMapper{
 		statusByCode: make(map[string]int),
