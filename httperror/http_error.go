@@ -3,7 +3,7 @@ package httperror
 import (
 	"errors"
 	"net/http"
-
+	"github.com/gin-gonic/gin"
 	domainerror "github.com/renatofagalde/module-error"
 )
 
