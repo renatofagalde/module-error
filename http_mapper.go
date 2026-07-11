@@ -27,6 +27,7 @@ func (m *HTTPStatusMapper) initialize() {
 	m.errorToStatus[ErrInvalidDate.Code] = http.StatusBadRequest
 	m.errorToStatus[ErrInvalidCurrency.Code] = http.StatusBadRequest
 	m.errorToStatus[ErrRequiredField.Code] = http.StatusBadRequest
+	m.errorToStatus[ErrValidationFailed.Code] = http.StatusBadRequest
 	m.errorToStatus[ErrInvalidFileType.Code] = http.StatusBadRequest
 
 	// 401 Unauthorized
