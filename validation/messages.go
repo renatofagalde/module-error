@@ -71,6 +71,15 @@ func messageFor(fe validator.FieldError) (code, message, constraint string) {
 	case "percent":
 		return "invalid_percent", "Percentual deve estar entre 0 e 100", "100"
 
+	case "percent2":
+		return "invalid_percent", "Percentual deve estar entre 0 e 100, com no máximo 2 casas decimais", "100"
+
+	case "percent2gt":
+		return "invalid_percent", "Percentual deve ser maior que 0 e no máximo 100, com até 2 casas decimais", "100"
+
+	case "money4gt":
+		return "money_scale_positive", "Valor monetário deve ser maior que zero e ter no máximo 4 casas decimais", "4"
+
 	case "cpfcnpj":
 		return "invalid_document", "CPF ou CNPJ inválido", ""
 
