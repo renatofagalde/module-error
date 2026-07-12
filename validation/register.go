@@ -23,6 +23,11 @@ var (
 	reMoney4 = regexp.MustCompile(`^-?\d{1,11}(\.\d{1,4})?$`)
 
 	reNonDigit = regexp.MustCompile(`\D`)
+
+	// percent2: ate 3 digitos inteiros e no maximo 2 casas decimais.
+	// Espelha NUMERIC(5,2). Sem isto, 15.1234 passaria no binding e o
+	// Postgres arredondaria para 15.12 sem avisar ninguem.
+	rePercent2 = regexp.MustCompile(`^-?\d{1,3}(\.\d{1,2})?$`)
 )
 
 // Register e idempotente e deve ser chamado uma vez no bootstrap
@@ -53,6 +58,9 @@ func Register() {
 		_ = v.RegisterValidation("money4", isMoney4)
 		_ = v.RegisterValidation("money4pos", isMoney4Positive)
 		_ = v.RegisterValidation("percent", isPercent)
+		_ = v.RegisterValidation("money4gt", isMoney4GreaterThanZero)
+		_ = v.RegisterValidation("percent2", isPercent2)
+		_ = v.RegisterValidation("percent2gt", isPercent2GreaterThanZero)
 		_ = v.RegisterValidation("cpfcnpj", isCPFCNPJ)
 		_ = v.RegisterValidation("phonebr", isPhoneBR)
 	})
@@ -194,4 +202,55 @@ func validCNPJ(d string) bool {
 		}
 	}
 	return true
+}
+
+// numericString devolve a representacao textual canonica do campo, seja ele
+// string, decimal.Decimal (via fmt.Stringer) ou um tipo numerico nativo.
+// Trabalhar sobre o texto e o que permite checar ESCALA (casas decimais),
+// coisa que float64 nao preserva.
+func numericString(fl validator.FieldLevel) (string, bool) {
+	f := fl.Field()
+	switch f.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return strconv.FormatInt(f.Int(), 10), true
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return strconv.FormatUint(f.Uint(), 10), true
+	case reflect.Float32, reflect.Float64:
+		return strconv.FormatFloat(f.Float(), 'f', -1, 64), true
+	}
+	return fieldString(fl)
+}
+
+// isMoney4GreaterThanZero: ate 4 casas e ESTRITAMENTE positivo.
+// Para colunas com CHECK (valor > 0), onde money4pos (que aceita zero)
+// deixaria o zero passar e morrer como violacao de constraint (500).
+func isMoney4GreaterThanZero(fl validator.FieldLevel) bool {
+	s, ok := numericString(fl)
+	if !ok || !reMoney4.MatchString(s) {
+		return false
+	}
+	n, err := strconv.ParseFloat(s, 64)
+	return err == nil && n > 0
+}
+
+// isPercent2: 0 a 100, no maximo 2 casas. Para NUMERIC(5,2) que aceita zero
+// (ex.: tax_discount_percent DEFAULT 0.00).
+func isPercent2(fl validator.FieldLevel) bool {
+	s, ok := numericString(fl)
+	if !ok || !rePercent2.MatchString(s) {
+		return false
+	}
+	n, err := strconv.ParseFloat(s, 64)
+	return err == nil && n >= 0 && n <= 100
+}
+
+// isPercent2GreaterThanZero: maior que 0 e ate 100, no maximo 2 casas.
+// Espelha CHECK (percent > 0 AND percent <= 100).
+func isPercent2GreaterThanZero(fl validator.FieldLevel) bool {
+	s, ok := numericString(fl)
+	if !ok || !rePercent2.MatchString(s) {
+		return false
+	}
+	n, err := strconv.ParseFloat(s, 64)
+	return err == nil && n > 0 && n <= 100
 }

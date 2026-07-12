@@ -7,6 +7,7 @@ require (
 	github.com/go-playground/validator/v10 v10.30.3
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/jackc/pgx/v5 v5.7.6
+	github.com/shopspring/decimal v1.4.0
 	gorm.io/gorm v1.25.7
 )
 
