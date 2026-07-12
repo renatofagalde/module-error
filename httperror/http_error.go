@@ -1,8 +1,10 @@
 package httperror
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
+
 	"github.com/gin-gonic/gin"
 	domainerror "github.com/renatofagalde/module-error"
 )
@@ -17,21 +19,61 @@ type DefaultHTTPStatusMapper struct {
 
 var httpErrorMapper = NewDefaultHTTPStatusMapper()
 
+// ProblemContentType e o media type exigido pela RFC 7807/9457.
+const ProblemContentType = "application/problem+json; charset=utf-8"
+
+// WriteError renderiza qualquer erro no envelope Problem Details.
+//
+// Erros nao catalogados viram 500 generico: a mensagem original NUNCA vaza
+// para o cliente.
 func WriteError(c *gin.Context, err error) {
 	status := httpErrorMapper.Status(err)
 
-	if derr, ok := err.(*domainerror.DomainError); ok {
-		c.JSON(status, gin.H{
-			"code":    derr.Code,
-			"message": derr.Message,
-		})
+	var problem *domainerror.Problem
+
+	// Validacao vem primeiro: *ValidationError faz Unwrap para *DomainError,
+	// entao a ordem dos branches importa.
+	var verr *domainerror.ValidationError
+	var derr *domainerror.DomainError
+
+	switch {
+	case errors.As(err, &verr):
+		problem = domainerror.NewProblem(domainerror.ErrValidationFailed, status)
+		problem.Errors = verr.Errors
+
+	// errors.As (nao type assertion): respeita empacotamento com %w.
+	case errors.As(err, &derr):
+		problem = domainerror.NewProblem(derr, status)
+
+	default:
+		status = http.StatusInternalServerError
+		problem = domainerror.NewProblem(domainerror.ErrInternalServer, status)
+	}
+
+	if c.Request != nil && c.Request.URL != nil {
+		problem.Instance = c.Request.URL.Path
+	}
+	problem.TraceID = traceIDFrom(c)
+
+	body, marshalErr := json.Marshal(problem)
+	if marshalErr != nil {
+		c.Status(http.StatusInternalServerError)
 		return
 	}
 
-	c.JSON(status, gin.H{
-		"code":    domainerror.ErrInternalServer.Code,
-		"message": "Erro interno do servidor",
-	})
+	c.Data(status, ProblemContentType, body)
+}
+
+// traceIDFrom busca o correlation id: primeiro o que a aplicacao injetou no
+// contexto, depois o header do API Gateway/X-Ray.
+func traceIDFrom(c *gin.Context) string {
+	if v := c.GetString("trace_id"); v != "" {
+		return v
+	}
+	if c.Request == nil {
+		return ""
+	}
+	return c.GetHeader("X-Amzn-Trace-Id")
 }
 
 func NewDefaultHTTPStatusMapper() *DefaultHTTPStatusMapper {
@@ -50,6 +92,7 @@ func NewDefaultHTTPStatusMapper() *DefaultHTTPStatusMapper {
 	m.statusByCode[domainerror.ErrInvalidDate.Code] = http.StatusBadRequest
 	m.statusByCode[domainerror.ErrInvalidCurrency.Code] = http.StatusBadRequest
 	m.statusByCode[domainerror.ErrRequiredField.Code] = http.StatusBadRequest
+	m.statusByCode[domainerror.ErrValidationFailed.Code] = http.StatusBadRequest
 
 	// ---------------------------------------------------------
 	// 401 – Unauthorized / 403 – Forbidden
